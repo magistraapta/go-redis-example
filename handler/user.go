@@ -12,6 +12,10 @@ import (
 	"gorm.io/gorm"
 )
 
+type Response struct {
+	Source string     `json:"source"`
+	Data   model.User `json:"data"`
+}
 
 // setup dependency injection
 type UserHandler struct {
@@ -24,8 +28,8 @@ func NewUserHandler(db *gorm.DB, rdb *redis.Client) *UserHandler {
 }
 
 // user handler
-func (h *UserHandler) GetUserWithRedis(w http.ResponseWriter, r *http.Request) {
-
+func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
+	source := ""
 	startTime := time.Now()
 
 	id := r.URL.Path[len("/redis/user/"):]
@@ -55,8 +59,15 @@ func (h *UserHandler) GetUserWithRedis(w http.ResponseWriter, r *http.Request) {
 		userDataBytes, _ := json.Marshal(user)
 		h.rdb.Set(r.Context(), cacheKey, userDataBytes, 10*time.Minute)
 
+		source = "database"
+
+		resp := Response{
+			Source: source,
+			Data:   user,
+		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(user)
+		json.NewEncoder(w).Encode(resp)
+
 	} else if err != nil {
 		http.Error(w, "failed to query Redis", http.StatusInternalServerError)
 		return
@@ -67,9 +78,14 @@ func (h *UserHandler) GetUserWithRedis(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		source = "redis"
 		// Respond with the user data from Redis
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(user)
+		resp := Response{
+			Source: source,
+			Data:   user,
+		}
+		json.NewEncoder(w).Encode(resp)
 	}
 
 	duration := time.Since(startTime)
@@ -77,33 +93,4 @@ func (h *UserHandler) GetUserWithRedis(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("Request getting user detail with Redis: %s \n", duration)
 }
 
-func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 
-	startTime := time.Now()
-
-	id := r.URL.Path[len("/user/"):]
-
-	if id == "" {
-		http.Error(w, "missing id", http.StatusBadRequest)
-		return
-	}
-
-	var user model.User
-
-	result := h.db.First(&user, id)
-	if result.Error != nil {
-		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			http.Error(w, "user not found", http.StatusNotFound)
-			return
-		}
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	duration := time.Since(startTime)
-
-	fmt.Printf("Request getting user detail without Redis: %s\n", duration)
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(user)
-}

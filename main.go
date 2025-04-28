@@ -32,7 +32,6 @@ func main() {
 	userHandler := handler.NewUserHandler(db, rdb)
 
 	mux.Handle("/user/", http.HandlerFunc(userHandler.GetUser))
-	mux.Handle("/redis/user/", http.HandlerFunc(userHandler.GetUserWithRedis))
 
 	// serve on port :8000
 	if err := http.ListenAndServe(os.Getenv("PORT"), mux); err != nil {
