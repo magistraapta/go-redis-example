@@ -57,7 +57,7 @@ func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 		}
 
 		userDataBytes, _ := json.Marshal(user)
-		h.rdb.Set(r.Context(), cacheKey, userDataBytes, 10*time.Minute)
+		h.rdb.Set(r.Context(), cacheKey, userDataBytes, 5*time.Minute)
 
 		source = "database"
 
