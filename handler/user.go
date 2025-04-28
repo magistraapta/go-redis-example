@@ -32,7 +32,7 @@ func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 	source := ""
 	startTime := time.Now()
 
-	id := r.URL.Path[len("/redis/user/"):]
+	id := r.URL.Path[len("/user/"):]
 
 	if id == "" {
 		http.Error(w, "missing id", http.StatusBadRequest)
@@ -92,5 +92,3 @@ func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Printf("Request getting user detail with Redis: %s \n", duration)
 }
-
-
